@@ -1,0 +1,28 @@
+# ==============================================================
+# AI Support & Operations Assistant — Python Dependencies
+# Updated to versions with pre-built wheels for Python 3.14
+# ==============================================================
+
+# Web framework
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
+
+# Data validation & settings management
+# pydantic 2.10+ has pre-built wheels for Python 3.14
+pydantic==2.11.4
+pydantic-settings==2.9.1
+email-validator==2.2.0  # required for Pydantic's EmailStr field type
+
+# Database ORM
+sqlalchemy==2.0.40
+
+# HTTP client for OpenRouter API calls
+httpx==0.28.1
+
+# Environment variable loading
+python-dotenv==1.1.0
+
+# Testing
+pytest==8.3.5
+pytest-asyncio==0.26.0
+# httpx is already listed above — also used as the async test client
