@@ -157,6 +157,82 @@ pytest tests/ -v
 
 ---
 
+---
+
+## 🗃️ Synthetic Dataset
+
+The project ships with a **100-ticket AI-ready evaluation dataset** designed to benchmark the pipeline against realistic, production-like support messages.
+
+### Generate / Regenerate
+
+```bash
+cd backend
+py -3.12 app/data/generate_dataset.py
+```
+
+Outputs:
+- `backend/app/data/generated/tickets_dataset.json` — 100 tickets
+- `backend/app/data/generated/dataset_summary.json` — distribution statistics
+
+### Ticket Schema
+
+```json
+{
+  "ticket_id": "SYN-0001",
+  "customer_name": "Sarah Mitchell",
+  "email": "sarah.mitchell@company.io",
+  "message": "I was charged twice for my subscription...",
+  "category": "billing",
+  "priority": "high",
+  "sentiment": "frustrated",
+  "expected_action": "escalate_billing",
+  "difficulty": "easy",
+  "language": "en",
+  "edge_case": null
+}
+```
+
+### Dataset Composition
+
+| Property | Values |
+|---|---|
+| **Categories** | billing, technical_issue, account_access, refund, feature_request, outage, enterprise_sales, bug_report, cancellation, integration_problem |
+| **Priorities** | low, medium, high, urgent |
+| **Sentiments** | positive, neutral, frustrated, angry, confused |
+| **Difficulty** | easy (27), medium (46), hard (27) |
+| **Regular tickets** | 80 (8 per category) |
+| **Edge case tickets** | 20 — vague, angry, multi-issue, typo-heavy, cancellation threats, enterprise escalations |
+
+### Edge Case Types
+
+Specifically designed to stress-test AI classification accuracy:
+
+| Type | Description |
+|---|---|
+| `vague_message` | "It's not working. Please help." |
+| `angry_customer` | ALL CAPS, threats, emotional overload |
+| `multiple_issues` | 3 different problems in one email |
+| `missing_reference` | No invoice/order number provided |
+| `typo_heavy` | "my acocunt is blokced" |
+| `cancellation_threat` | Implicit churn signal inside a support request |
+| `enterprise_escalation` | Formal SLA breach notification from CTO |
+| `unclear_ownership` | Reference to previous conversation with no context |
+| `emotional_low_info` | High emotion, zero actionable details |
+| `urgent_ops` | PRODUCTION DOWN, P0, revenue impact |
+
+### How This Dataset Will Be Used
+
+1. **Phase 3** — Run the full AI pipeline against all 100 tickets
+2. **Compare** `AI output` vs `expected_action / category / priority`
+3. **Calculate** accuracy scores per category and per difficulty tier
+4. **Identify** where the AI model underperforms (likely on edge cases)
+5. **Future** — fine-tuning dataset or prompt optimization benchmark
+
+> **Deterministic:** `random.seed(42)` — every regeneration produces identical files.
+> Safe for CI/CD and reproducible experiments.
+
+---
+
 ## 📌 Use Cases
 
 - **LinkedIn content** — Demonstrating real AI-powered system design

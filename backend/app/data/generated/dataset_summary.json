@@ -1,0 +1,52 @@
+{
+  "total_tickets": 100,
+  "regular_tickets": 80,
+  "edge_case_tickets": 20,
+  "category_distribution": {
+    "billing": 12,
+    "technical_issue": 16,
+    "account_access": 10,
+    "refund": 10,
+    "feature_request": 8,
+    "outage": 10,
+    "enterprise_sales": 8,
+    "bug_report": 9,
+    "cancellation": 8,
+    "integration_problem": 9
+  },
+  "priority_distribution": {
+    "high": 30,
+    "urgent": 16,
+    "medium": 42,
+    "low": 12
+  },
+  "sentiment_distribution": {
+    "frustrated": 37,
+    "confused": 6,
+    "angry": 17,
+    "neutral": 32,
+    "positive": 8
+  },
+  "difficulty_distribution": {
+    "easy": 27,
+    "medium": 46,
+    "hard": 27
+  },
+  "edge_case_distribution": {
+    "vague_message": 2,
+    "angry_customer": 2,
+    "multiple_issues": 2,
+    "missing_reference": 2,
+    "typo_heavy": 2,
+    "cancellation_threat": 2,
+    "enterprise_escalation": 2,
+    "unclear_ownership": 2,
+    "emotional_low_info": 2,
+    "urgent_ops": 2
+  },
+  "language_distribution": {
+    "en": 100
+  },
+  "generated_with": "random.seed(42) — fully deterministic",
+  "schema_version": "1.0.0"
+}
