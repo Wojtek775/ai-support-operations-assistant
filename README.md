@@ -233,6 +233,63 @@ Specifically designed to stress-test AI classification accuracy:
 
 ---
 
+---
+
+## 🔬 AI Evaluation System
+
+The project includes a benchmarking pipeline to measure how accurately the AI model processes tickets against ground-truth labels.
+
+### Run evaluation (requires OpenRouter API key)
+
+```bash
+cd backend
+py -3.12 -m app.evals.run_evals
+```
+
+### Dry run (no API calls — schema check only)
+
+```bash
+cd backend
+py -3.12 -m app.evals.run_evals --dry-run
+```
+
+### What it measures
+
+| Dimension | AI field | Dataset field |
+|---|---|---|
+| Category | `classification` | `category` |
+| Priority | `priority` | `priority` |
+| Sentiment | `sentiment` | `sentiment` (normalized) |
+| Action | `recommended_action` | `expected_action` |
+
+### Sentiment normalization
+
+The dataset uses richer labels (`frustrated`, `confused`) than the AI returns. Applied mapping:
+
+```
+frustrated → negative
+confused   → neutral
+```
+
+### Output: `backend/app/evals/eval_results.json`
+
+```json
+{
+  "total_tickets": 100,
+  "overall_accuracy": 0.72,
+  "category_accuracy": 0.85,
+  "accuracy_by_difficulty": { "easy": 0.90, "medium": 0.74, "hard": 0.52 },
+  "accuracy_by_edge_case": { "vague_message": 0.30, "angry_customer": 0.60 }
+}
+```
+
+> **Note:** This eval measures **structured output alignment only**.
+> Semantic quality evaluation (response quality, summary relevance) will be added in a future phase.
+
+See full documentation: [`backend/app/evals/README.md`](backend/app/evals/README.md)
+
+---
+
 ## 📌 Use Cases
 
 - **LinkedIn content** — Demonstrating real AI-powered system design

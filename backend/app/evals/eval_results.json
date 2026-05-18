@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "evaluated_at": null,
+    "dataset_path": "backend/app/data/generated/tickets_dataset.json",
+    "schema_version": "1.0.0",
+    "note": "This eval measures structured output alignment only. Semantic response quality is not yet evaluated.",
+    "status": "not_run_yet"
+  },
+  "total_tickets": 0,
+  "overall_accuracy": 0.0,
+  "category_accuracy": 0.0,
+  "priority_accuracy": 0.0,
+  "sentiment_accuracy": 0.0,
+  "expected_action_accuracy": 0.0,
+  "edge_case_accuracy": 0.0,
+  "accuracy_by_category": {
+    "account_access": 0.0,
+    "billing": 0.0,
+    "bug_report": 0.0,
+    "cancellation": 0.0,
+    "enterprise_sales": 0.0,
+    "feature_request": 0.0,
+    "integration_problem": 0.0,
+    "outage": 0.0,
+    "refund": 0.0,
+    "technical_issue": 0.0
+  },
+  "accuracy_by_priority": {
+    "high": 0.0,
+    "low": 0.0,
+    "medium": 0.0,
+    "urgent": 0.0
+  },
+  "accuracy_by_difficulty": {
+    "easy": 0.0,
+    "hard": 0.0,
+    "medium": 0.0
+  },
+  "accuracy_by_edge_case": {
+    "angry_customer": 0.0,
+    "cancellation_threat": 0.0,
+    "emotional_low_info": 0.0,
+    "enterprise_escalation": 0.0,
+    "missing_reference": 0.0,
+    "multiple_issues": 0.0,
+    "typo_heavy": 0.0,
+    "unclear_ownership": 0.0,
+    "urgent_ops": 0.0,
+    "vague_message": 0.0
+  },
+  "per_ticket_results": []
+}
