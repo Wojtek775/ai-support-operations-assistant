@@ -49,6 +49,9 @@ ai-support-operations-assistant/
 │   │   └── test_tickets.py      # Basic endpoint tests
 │   ├── requirements.txt
 │   └── .env.example
+├── dashboard/
+│   ├── app.py                   # Streamlit dashboard entry point
+│   └── requirements.txt         # Dashboard-only dependencies
 ├── docs/
 │   ├── TECHNICAL_ARCHITECTURE.md
 │   └── ROADMAP.md
@@ -132,6 +135,52 @@ Interactive docs: **http://localhost:8000/docs**
   "ai_model_used": "openai/gpt-4o-mini"
 }
 ```
+
+---
+
+## 🖥️ Dashboard
+
+A lightweight Streamlit dashboard that visualises backend metrics and processed tickets in real time.
+
+### Run the backend first
+
+```bash
+cd ai-support-operations-assistant/backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+```
+
+### Install dashboard dependencies
+
+```bash
+cd ai-support-operations-assistant/dashboard
+pip install -r requirements.txt
+```
+
+### Run the dashboard
+
+```bash
+cd ai-support-operations-assistant/dashboard
+streamlit run app.py
+```
+
+The dashboard opens at **http://localhost:8501** by default.
+
+### Dashboard features
+
+| Section | Description |
+|---|---|
+| **System Health** | Live backend status (🟢 Online / 🔴 Offline), version, URL |
+| **AI Operations Overview** | 5 metric cards: total tickets, urgent, high-priority, negative sentiment, top category |
+| **Recent Tickets** | Sortable table of up to 50 most recent processed tickets |
+| **Sidebar** | Configurable backend URL, Refresh button, project info |
+
+> If no tickets have been processed yet, the dashboard shows:
+> *"No tickets processed yet. Submit a ticket via /docs or POST /tickets to populate the dashboard."*
+
+### Dashboard screenshot
+
+![Dashboard Screenshot](docs/dashboard_screenshot.png)
 
 ---
 
