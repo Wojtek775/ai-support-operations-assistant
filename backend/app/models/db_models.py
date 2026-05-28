@@ -9,7 +9,7 @@ Migration path: set DATABASE_URL to a PostgreSQL connection string and
 SQLAlchemy will handle the rest — no code changes required.
 """
 
-from sqlalchemy import Column, String, Text, DateTime
+from sqlalchemy import Boolean, Column, Integer, String, Text, DateTime
 from sqlalchemy.orm import DeclarativeBase
 from datetime import datetime, timezone
 
@@ -45,6 +45,13 @@ class TicketRecord(Base):
     suggested_response = Column(Text, nullable=False)
     recommended_action = Column(Text, nullable=False)
 
+    # Workflow orchestration fields (nullable for backward compatibility)
+    assigned_team = Column(String(100), nullable=True)
+    sla_hours = Column(Integer, nullable=True)
+    requires_human_review = Column(Boolean, nullable=True, default=False)
+    escalation_level = Column(Integer, nullable=True, default=0)
+    internal_notes = Column(Text, nullable=True)
+
     # Metadata
     processed_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     ai_model_used = Column(String(100), nullable=False)
@@ -54,5 +61,6 @@ class TicketRecord(Base):
             f"<TicketRecord id={self.id!r} "
             f"customer={self.customer_name!r} "
             f"classification={self.classification!r} "
-            f"priority={self.priority!r}>"
+            f"priority={self.priority!r} "
+            f"assigned_team={self.assigned_team!r}>"
         )

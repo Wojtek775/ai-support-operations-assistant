@@ -138,6 +138,44 @@ Interactive docs: **http://localhost:8000/docs**
 
 ---
 
+## 🔄 Workflow Orchestration
+
+Beyond AI classification, the system applies **deterministic routing rules** to every ticket — no additional AI calls, no randomness. The workflow engine runs after the AI pipeline and produces five additional fields:
+
+| Field | Description |
+|---|---|
+| `assigned_team` | Team responsible for handling the ticket |
+| `sla_hours` | Response window in hours |
+| `requires_human_review` | `true` when manual attention is mandatory |
+| `escalation_level` | `0` = normal, `1` = elevated, `2` = urgent escalation |
+| `internal_notes` | Hardcoded routing explanation (not AI-generated) |
+
+### Routing Rules
+
+| # | Condition | Result |
+|---|---|---|
+| 1 | `outage` + `urgent/critical` | `infrastructure_team`, SLA 1h |
+| 1b | `technical` + `critical` | `infrastructure_team`, SLA 1h |
+| 2 | `billing` or `refund` | `finance_team`, SLA 4h |
+| 3 | `enterprise_sales` | `account_executive`, SLA 2h |
+| 4 | `cancellation` | `retention_queue`, SLA 2h |
+| 5 | `technical` (non-critical) | `technical_team`, SLA 8h |
+| 6 | `account` | `account_team`, SLA 8h |
+| — | default | `support_general`, SLA 24h |
+| **+** | `angry` + `urgent/critical` | `escalation_level=2`, `requires_human_review=true` |
+| **+** | `high+` priority + `negative/angry` | `requires_human_review=true`, `escalation_level≥1` |
+
+### Internal Notes Examples
+
+```
+"Urgent outage detected. Route to infrastructure team immediately."
+"Billing/refund issue. Route to finance team."
+"Cancellation risk detected. Route to retention queue."
+"ESCALATED: Angry customer with urgent priority — immediate human review required."
+```
+
+---
+
 ## 🖥️ Dashboard
 
 A lightweight Streamlit dashboard that visualises backend metrics and processed tickets in real time.

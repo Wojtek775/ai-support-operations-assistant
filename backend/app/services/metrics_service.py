@@ -19,7 +19,8 @@ def get_system_metrics(db: Session) -> dict:
         db: SQLAlchemy database session (injected by FastAPI dependency).
 
     Returns:
-        Dict with ticket counts and top category, matching SystemMetrics schema.
+        Dict with ticket counts, top category, and workflow metrics,
+        matching the SystemMetrics schema.
     """
     total_tickets = db.query(TicketRecord).count()
 
@@ -60,10 +61,25 @@ def get_system_metrics(db: Session) -> dict:
         else None
     )
 
+    # Workflow orchestration metrics
+    requires_human_review_tickets = (
+        db.query(TicketRecord)
+        .filter(TicketRecord.requires_human_review == True)  # noqa: E712
+        .count()
+    )
+
+    escalation_level_2_tickets = (
+        db.query(TicketRecord)
+        .filter(TicketRecord.escalation_level == 2)
+        .count()
+    )
+
     return {
         "total_tickets": total_tickets,
         "urgent_tickets": urgent_tickets,
         "high_priority_tickets": high_priority_tickets,
         "negative_sentiment_tickets": negative_sentiment_tickets,
         "top_category": top_category,
+        "requires_human_review_tickets": requires_human_review_tickets,
+        "escalation_level_2_tickets": escalation_level_2_tickets,
     }

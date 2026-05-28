@@ -2,7 +2,8 @@
 dashboard/app.py — Streamlit dashboard for the AI Support & Operations Assistant.
 
 Connects to the FastAPI backend at http://127.0.0.1:8000 (configurable via sidebar).
-Displays system health, AI operations metrics, and recent ticket activity.
+Displays system health, AI operations metrics, workflow orchestration stats,
+and recent ticket activity including workflow routing fields.
 """
 
 import requests
@@ -103,7 +104,6 @@ def fetch_tickets(base_url: str) -> list | None:
 
 # ---------------------------------------------------------------------------
 # Trigger a rerun when the refresh button is clicked
-# (cache is busted automatically because Streamlit reruns the entire script)
 # ---------------------------------------------------------------------------
 
 if refresh:
@@ -127,7 +127,7 @@ st.title("🤖 AI Support & Operations Dashboard")
 st.caption(f"Last refreshed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 # ---------------------------------------------------------------------------
-# Connection error banner (shown when backend is completely unreachable)
+# Connection error banner
 # ---------------------------------------------------------------------------
 
 if not backend_online:
@@ -171,7 +171,7 @@ else:
 st.divider()
 
 # ---------------------------------------------------------------------------
-# Section 2: AI Operations Overview (Metrics)
+# Section 2: AI Operations Overview (Core Metrics)
 # ---------------------------------------------------------------------------
 
 st.header("📊 AI Operations Overview")
@@ -210,6 +210,25 @@ else:
             value=top_cat.capitalize() if top_cat != "—" else "—",
         )
 
+    # Workflow orchestration metrics row
+    st.markdown("#### 🔄 Workflow Orchestration")
+    wcol1, wcol2, wcol3 = st.columns(3)
+    with wcol1:
+        st.metric(
+            label="👤 Requires Human Review",
+            value=m.get("requires_human_review_tickets", 0),
+        )
+    with wcol2:
+        st.metric(
+            label="🔺 Escalation Level 2",
+            value=m.get("escalation_level_2_tickets", 0),
+        )
+    with wcol3:
+        total = m.get("total_tickets", 0)
+        review = m.get("requires_human_review_tickets", 0)
+        pct = f"{(review / total * 100):.1f}%" if total > 0 else "—"
+        st.metric(label="📈 Human Review Rate", value=pct)
+
 st.divider()
 
 # ---------------------------------------------------------------------------
@@ -230,7 +249,6 @@ else:
     display_tickets = []
     for t in tickets_data:
         processed_at = t.get("processed_at", "")
-        # Normalise ISO timestamp for display
         try:
             dt = datetime.fromisoformat(processed_at.replace("Z", "+00:00"))
             processed_at_str = dt.strftime("%Y-%m-%d %H:%M")
@@ -239,25 +257,29 @@ else:
 
         display_tickets.append(
             {
-                "Ticket ID": t.get("ticket_id", ""),
+                "Ticket ID": t.get("ticket_id", "")[:8] + "…",
                 "Customer": t.get("customer_name", ""),
-                "Email": t.get("email", ""),
                 "Classification": t.get("classification", "").capitalize(),
                 "Priority": t.get("priority", "").capitalize(),
                 "Sentiment": t.get("sentiment", "").capitalize(),
+                "Assigned Team": t.get("assigned_team", "support_general").replace("_", " ").title(),
+                "SLA (h)": t.get("sla_hours", 24),
+                "Escalation": t.get("escalation_level", 0),
+                "Human Review": "✅" if t.get("requires_human_review", False) else "—",
                 "Processed At": processed_at_str,
             }
         )
 
-    # Sort by processed_at descending (string sort works for ISO dates)
+    # Sort by processed_at descending
     display_tickets.sort(key=lambda x: x["Processed At"], reverse=True)
     display_tickets = display_tickets[:50]
 
     st.caption(f"Showing {len(display_tickets)} most recent ticket(s).")
 
-    # Priority colour helper for the table
+    # Priority colour helper
     priority_colours = {
         "Critical": "🔴",
+        "Urgent": "🔴",
         "High": "🟠",
         "Medium": "🟡",
         "Low": "🟢",
