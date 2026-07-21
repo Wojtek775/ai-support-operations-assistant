@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     # Database — swap to PostgreSQL URL for production
     database_url: str = "sqlite:///./app/data/tickets.db"
 
+    # Workflow settings
+    workflow_confidence_threshold: float = 0.60
+
     # API server
     api_host: str = "0.0.0.0"
     api_port: int = 8000

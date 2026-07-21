@@ -19,7 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import engine, Base
-from app.routers import health, tickets, metrics
+from app.routers import health, tickets, metrics, workflows
 from app.utils.logger import logger
 
 
@@ -96,6 +96,7 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(tickets.router)
 app.include_router(metrics.router)
+app.include_router(workflows.router)
 
 
 # ---------------------------------------------------------------------------

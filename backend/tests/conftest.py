@@ -40,7 +40,13 @@ from app.database import get_db
 
 # Import Base AND TicketRecord to ensure the model is registered in
 # Base.metadata BEFORE create_all() is called.
-from app.models.db_models import Base, TicketRecord  # noqa: F401
+from app.models.db_models import Base, TicketRecord, WorkflowRunRecord  # noqa: F401
+
+# Import router-level dependency functions so tests can override them
+from app.routers.workflows import get_llm_adapter, get_resolution_adapter, get_reviewer_adapter
+
+# Mock adapters (deterministic, no network calls)
+from app.workflows.adapters.mock import MockResolutionAdapter, MockReviewerAdapter, MockTriageAdapter
 
 
 # ---------------------------------------------------------------------------
@@ -75,6 +81,21 @@ def override_get_db():
         db.close()
 
 
+def override_get_llm_adapter():
+    """Return a deterministic MockTriageAdapter — no network calls."""
+    return MockTriageAdapter()
+
+
+def override_get_resolution_adapter():
+    """Return a deterministic MockResolutionAdapter — no network calls."""
+    return MockResolutionAdapter()
+
+
+def override_get_reviewer_adapter():
+    """Return a deterministic MockReviewerAdapter (APPROVED) — no network calls."""
+    return MockReviewerAdapter(decision="APPROVED")
+
+
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -97,10 +118,14 @@ def client(setup_test_database):
     Provides a FastAPI TestClient for each test.
 
     - Overrides get_db so all endpoints use the in-memory test database.
+    - Overrides get_llm_adapter and get_resolution_adapter with mock adapters.
     - Uses 'with TestClient(app)' to trigger lifespan (startup/shutdown).
     - Clears dependency_overrides after the test to avoid bleed-through.
     """
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_llm_adapter] = override_get_llm_adapter
+    app.dependency_overrides[get_resolution_adapter] = override_get_resolution_adapter
+    app.dependency_overrides[get_reviewer_adapter] = override_get_reviewer_adapter
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
