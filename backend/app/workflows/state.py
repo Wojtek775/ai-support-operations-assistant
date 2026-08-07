@@ -63,3 +63,10 @@ class WorkflowState(TypedDict):
     started_at: str    # ISO-8601
     updated_at: str    # ISO-8601
     completed_at: str | None
+
+    # ── Supervisor Agent output ──────────────────────────────────────────────
+    # Set by SupervisorNode on every iteration of the supervisor loop.
+    # None until the supervisor graph is used (backward-compatible).
+    supervisor_next: str | None        # last decision: agent name or "FINISH"
+    supervisor_reasoning: str | None   # LLM explanation of the decision
+    supervisor_iterations: int         # number of supervisor loop cycles

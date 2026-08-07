@@ -112,6 +112,60 @@ class ResolutionAdapter(Protocol):
 
 
 # ---------------------------------------------------------------------------
+# Supervisor Agent
+# ---------------------------------------------------------------------------
+
+# Valid agent names the Supervisor can dispatch to, plus terminal sentinel.
+SUPERVISOR_AGENTS = ("triage", "routing", "resolution", "reviewer", "human_review", "FINISH")
+
+
+class SupervisorOutput(BaseModel):
+    """
+    Structured output from the Supervisor Agent. Validated by Pydantic.
+
+    Fields:
+        next_agent  — which agent (or FINISH) the supervisor selects
+        reasoning   — brief explanation of the decision (stored in execution_trace)
+    """
+
+    next_agent: Literal["triage", "routing", "resolution", "reviewer", "human_review", "FINISH"]
+    reasoning: str = Field(min_length=5, max_length=500)
+
+
+@runtime_checkable
+class SupervisorAdapter(Protocol):
+    """
+    Supervisor Agent adapter interface.
+
+    Dependency-injected into SupervisorNode so tests can use
+    MockSupervisorAdapter without any network calls.
+    """
+
+    async def supervise(
+        self,
+        *,
+        message: str,
+        customer_name: str,
+        completed_agents: list[str],
+        state_summary: dict,
+    ) -> SupervisorOutput:
+        """
+        Decide which agent should run next.
+
+        Args:
+            message          — original customer message
+            customer_name    — customer name
+            completed_agents — agents that have already run (in order)
+            state_summary    — key state fields for context (classification,
+                               priority, routing_decision, review_decision, etc.)
+
+        Returns:
+            SupervisorOutput — next_agent + reasoning
+        """
+        ...
+
+
+# ---------------------------------------------------------------------------
 # Quality Reviewer Agent
 # ---------------------------------------------------------------------------
 

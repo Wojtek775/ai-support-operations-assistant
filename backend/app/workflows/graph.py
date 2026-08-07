@@ -1,7 +1,7 @@
 """
 workflows/graph.py — LangGraph graph definitions.
 
-ETAP 4 (current):
+ETAP 4 (pipeline graph):
     START -> triage -> routing -> conditional
       ├── human_review → human_review_gate → END   (interrupt)
       └── no_review    → resolution → reviewer → conditional
@@ -10,10 +10,14 @@ ETAP 4 (current):
                                         ├── RETRY (2nd+)  → human_review_gate (interrupt)
                                         └── HUMAN_REVIEW  → human_review_gate (interrupt)
 
-Resolution Agent runs only for workflows that do NOT require human review.
-human-review workflows are paused at human_review_gate (interrupt).
-Reviewer runs after every resolution call.
-Max 1 retry: second RETRY routes to human_review_gate.
+ETAP 5 (supervisor graph):
+    START → supervisor → conditional (supervisor_next)
+      ├── triage        → triage        → supervisor
+      ├── routing       → routing       → supervisor
+      ├── resolution    → resolution    → supervisor
+      ├── reviewer      → reviewer      → supervisor
+      ├── human_review  → human_review_gate → supervisor
+      └── FINISH        → END
 
 Checkpointer:
 - InMemorySaver  — tests (passed as argument, default)
@@ -29,11 +33,12 @@ from datetime import datetime, timezone
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 
-from app.workflows.adapters.base import LLMAdapter, ResolutionAdapter, ReviewerAdapter
+from app.workflows.adapters.base import LLMAdapter, ResolutionAdapter, ReviewerAdapter, SupervisorAdapter
 from app.workflows.nodes.human_review_gate import _needs_human_review, human_review_gate_node
 from app.workflows.nodes.resolution import ResolutionNode
 from app.workflows.nodes.reviewer import ReviewerNode
 from app.workflows.nodes.routing import routing_node
+from app.workflows.nodes.supervisor import SupervisorNode
 from app.workflows.nodes.triage import TriageNode
 from app.workflows.state import WorkflowState
 
@@ -231,6 +236,106 @@ def build_full_graph(
     return builder.compile(checkpointer=checkpointer)
 
 
+def build_supervisor_graph(
+    supervisor_adapter: SupervisorAdapter,
+    llm_adapter: LLMAdapter,
+    resolution_adapter: ResolutionAdapter,
+    reviewer_adapter: ReviewerAdapter | None = None,
+    checkpointer=None,
+):
+    """
+    Supervisor-pattern graph for ETAP 5.
+
+    Topology:
+        START → supervisor → (conditional on supervisor_next)
+          ├── "triage"       → triage        → supervisor
+          ├── "routing"      → routing       → supervisor
+          ├── "resolution"   → resolution    → supervisor
+          ├── "reviewer"     → reviewer      → supervisor
+          ├── "human_review" → human_review_gate → supervisor
+          └── "FINISH"       → END
+
+    The Supervisor Agent (LLM) decides which specialist to call next based
+    on the current workflow state. This replaces the hard-coded pipeline from
+    build_full_graph() with a dynamic, LLM-driven orchestration loop.
+
+    Args:
+        supervisor_adapter: Injected Supervisor LLM adapter.
+        llm_adapter:        Injected Triage LLM adapter.
+        resolution_adapter: Injected Resolution LLM adapter.
+        reviewer_adapter:   Injected Quality Reviewer adapter.
+                            If None, MockReviewerAdapter(decision="APPROVED") is used.
+        checkpointer:       LangGraph checkpointer. Defaults to InMemorySaver.
+
+    Returns:
+        Compiled LangGraph graph.
+    """
+    if checkpointer is None:
+        checkpointer = InMemorySaver()
+
+    if reviewer_adapter is None:
+        from app.workflows.adapters.mock import MockReviewerAdapter
+        reviewer_adapter = MockReviewerAdapter(decision="APPROVED")
+
+    supervisor_node = SupervisorNode(supervisor_adapter)
+    triage_node = TriageNode(llm_adapter)
+    resolution_node = ResolutionNode(resolution_adapter)
+    reviewer_node = ReviewerNode(reviewer_adapter)
+
+    def _route_supervisor(state: WorkflowState) -> str:
+        """Read supervisor_next from state and map to graph node name."""
+        next_agent = state.get("supervisor_next", "FINISH")
+        # Map supervisor decisions to graph node names
+        _mapping = {
+            "triage": "triage",
+            "routing": "routing",
+            "resolution": "resolution",
+            "reviewer": "reviewer",
+            "human_review": "human_review_gate",
+            "FINISH": END,
+        }
+        return _mapping.get(next_agent, END)
+
+    builder = StateGraph(WorkflowState)
+
+    # Register nodes
+    builder.add_node("supervisor", supervisor_node)
+    builder.add_node("triage", triage_node)
+    builder.add_node("routing", routing_node)
+    builder.add_node("human_review_gate", human_review_gate_node)
+    builder.add_node("resolution", resolution_node)
+    builder.add_node("reviewer", reviewer_node)
+
+    # START → supervisor
+    builder.add_edge(START, "supervisor")
+
+    # Supervisor routes to any specialist (or END)
+    builder.add_conditional_edges(
+        "supervisor",
+        _route_supervisor,
+        {
+            "triage": "triage",
+            "routing": "routing",
+            "resolution": "resolution",
+            "reviewer": "reviewer",
+            "human_review_gate": "human_review_gate",
+            END: END,
+        },
+    )
+
+    # All specialists loop back to supervisor
+    builder.add_edge("triage", "supervisor")
+    builder.add_edge("routing", "supervisor")
+    builder.add_edge("resolution", "supervisor")
+    builder.add_edge("reviewer", "supervisor")
+
+    # human_review_gate uses interrupt() — after it resumes, go to END
+    # (NOT back to supervisor, because the human has taken over at this point)
+    builder.add_edge("human_review_gate", END)
+
+    return builder.compile(checkpointer=checkpointer)
+
+
 # ---------------------------------------------------------------------------
 # State factory
 # ---------------------------------------------------------------------------
@@ -278,4 +383,8 @@ def make_initial_state(
         started_at=now,
         updated_at=now,
         completed_at=None,
+        # Supervisor fields — start at zero/None
+        supervisor_next=None,
+        supervisor_reasoning=None,
+        supervisor_iterations=0,
     )
